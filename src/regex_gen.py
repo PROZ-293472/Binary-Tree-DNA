@@ -1,4 +1,4 @@
-import math
+import copy
 import random
 
 
@@ -23,20 +23,26 @@ class RegexGenerator:
     # w - whatever
 
     @staticmethod
-    def gen_dict_list(symbols, position):
-        return [{'string': s, 'position': position} for s in symbols]
+    def gen_dict_list(symbols, position, presort_pos):
+        return [{'string': s, 'position': position, 'presort_pos': presort_pos} for s in symbols]
+
+    @staticmethod
+    def list_to_string(dict_list):
+        s = ''
+        for d in dict_list:
+            s += d['string']
+        return s
 
     def __init__(self, max_pos, max_bracket_num, curly_bracket_restrictions):
         self.max_pos = max_pos
         self.max_bracket_num = max_bracket_num
         self.curly_bracket_restrictions = curly_bracket_restrictions
 
-        f_list = RegexGenerator.gen_dict_list(symbols=['^'], position='f')
-        l_list = RegexGenerator.gen_dict_list(symbols=['$'], position='l')
-        nf_list = RegexGenerator.gen_dict_list(symbols=['+', '*'], position='nf')
-        # nl_list = RegexGenerator.gen_dict_list(symbols=[], position='nl')
-        nfnl_list = RegexGenerator.gen_dict_list(symbols=['|'], position='nfnl')
-        w_list = RegexGenerator.gen_dict_list(symbols=RegexGenerator._letters.append('.'), position='w')
+        f_list = RegexGenerator.gen_dict_list(symbols=['^'], position='f', presort_pos=0)
+        l_list = RegexGenerator.gen_dict_list(symbols=['$'], position='l', presort_pos=0)
+        nf_list = RegexGenerator.gen_dict_list(symbols=['+', '*'], position='nf', presort_pos=0)
+        nfnl_list = RegexGenerator.gen_dict_list(symbols=['|'], position='nfnl', presort_pos=1)
+        w_list = RegexGenerator.gen_dict_list(symbols=RegexGenerator._letters + ['.'], position='w', presort_pos=0)
 
         self.mult_symbols = w_list + nfnl_list + nf_list
         self.unique_symbols = f_list + l_list
@@ -47,7 +53,8 @@ class RegexGenerator:
         return {'brackets': 'curly',
                 'string': f'{{{amount}}}',
                 'length': amount,
-                'position': 'nf'}
+                'position': 'nf',
+                'presort_pos': 0}
 
     def square_brackets(self):
         # range useless (?) bc it's quite a narrow set so there's no need to implement it
@@ -56,7 +63,8 @@ class RegexGenerator:
         return {'brackets': 'square',
                 'string': f'[{"".join(x for x in letters)}]',
                 'length': 1,
-                'position': 'w'}
+                'position': 'w',
+                'presort_pos': 0}
 
     def gen_brackets(self, num, max_len):
         total_len = 0
@@ -78,17 +86,59 @@ class RegexGenerator:
                 total_len += 1
         return brackets, total_len
 
+    def sort(self, dict_list):
+        # pre-sort (for nfnl records)
+        dict_list = sorted(dict_list, key=lambda k: k['presort_pos'])
+        max_index = 0
+        min_index = self.max_pos
+
+        new_list = copy.deepcopy(dict_list)
+
+        # in this one giant abomination we replace str keys with numeric in order to sort a list
+        for i in range(len(dict_list)):
+            d = dict_list[i]
+            if d['position'] == 'f':  # always first
+                new_list[i]['position'] = 0
+            elif d['position'] == 'l':  # always last
+                new_list[i]['position'] = self.max_pos
+            elif d['position'] == 'nf' or d['position'] == 'w':  # wherever between first and last
+                new_list[i]['position'] = random.randint(1, self.max_pos-1)
+            elif d['position'] == 'nfnl':  # must not be first or last
+                new_list[i]['position'] = random.randint(min_index+1, max_index-1)
+
+            if new_list[i]['position'] > max_index:
+                max_index = new_list[i]['position']
+            if new_list[i]['position'] < min_index:
+                min_index = new_list[i]['position']
+
+        return sorted(new_list, key=lambda k: k['position'])
+
+    # main func
     def gen_regex(self):
         regex_len = random.randint(1, self.max_pos)
 
         # generating brackets
         b_num = random.randint(0, self.max_bracket_num)
-        brackets, b_len = self.gen_brackets(num=b_num, max_len=regex_len)
+        brackets, b_len = self.gen_brackets(num=b_num, max_len=regex_len-1)
 
         # pick characters at random
         characters = random.choices(self.mult_symbols, k=(regex_len - b_len))
 
+        has_unique = bool(random.getrandbits(1))
+        if has_unique:
+            unique_num = random.randint(1, 2)
+            temp = random.sample(self.unique_symbols, unique_num)
+            characters += temp
 
+        phrase_raw = brackets + characters
+        phrase_raw = [copy.deepcopy(i) for i in phrase_raw]
+
+        phrase_raw = self.sort(phrase_raw)
+        phrase = RegexGenerator.list_to_string(phrase_raw)
+
+        index = random.randint(1, self.max_pos - regex_len)
+        print((index, phrase))
+        return index, phrase
 
 
 
