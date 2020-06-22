@@ -5,6 +5,9 @@ import random
 class RegexGenerator:
 
     _letters = ['A', 'C', 'G', 'T']
+    _forbidden = [('++', '+'), ('**', '*'), ('+*', '+'), ('*+', '*'),
+                  ('*{', '{'), ('}*', '}'), ('+{', '{'), ('}+', '}'),
+                  ('^*', '^'), ('^+', '^')]
 
     # Here are defined some rules, that will assure correct sytnax
     # ^ - at the begining
@@ -41,10 +44,10 @@ class RegexGenerator:
         f_list = RegexGenerator.gen_dict_list(symbols=['^'], position='f', presort_pos=0)
         l_list = RegexGenerator.gen_dict_list(symbols=['$'], position='l', presort_pos=0)
         nf_list = RegexGenerator.gen_dict_list(symbols=['+', '*'], position='nf', presort_pos=0)
-        nfnl_list = RegexGenerator.gen_dict_list(symbols=['|'], position='nfnl', presort_pos=1)
+        # nfnl_list = RegexGenerator.gen_dict_list(symbols=['|'], position='nfnl', presort_pos=1)
         w_list = RegexGenerator.gen_dict_list(symbols=RegexGenerator._letters + ['.'], position='w', presort_pos=0)
 
-        self.mult_symbols = w_list + nfnl_list + nf_list
+        self.mult_symbols = w_list + nf_list  # + nfnl_list
         self.unique_symbols = f_list + l_list
 
     def curly_brackets(self, amount=None):
@@ -113,6 +116,17 @@ class RegexGenerator:
 
         return sorted(new_list, key=lambda k: k['position'])
 
+    @staticmethod
+    def repair(text):
+        forbidden_sequences = [r[0] for r in RegexGenerator._forbidden]
+        repairs = [r[1] for r in RegexGenerator._forbidden]
+        while any(elem in text for elem in forbidden_sequences):
+            for i in range(len(forbidden_sequences)):
+                if forbidden_sequences[i] in text:
+                    text = text.replace(forbidden_sequences[i], repairs[i])
+        return text
+
+
     # main func
     def gen_regex(self):
         regex_len = random.randint(1, self.max_pos)
@@ -124,9 +138,9 @@ class RegexGenerator:
         # pick characters at random
         characters = random.choices(self.mult_symbols, k=(regex_len - b_len))
 
-        has_unique = bool(random.getrandbits(1))
+        has_unique = bool(random.random() > 0.7)
         if has_unique:
-            unique_num = random.randint(1, 2)
+            unique_num = 1
             temp = random.sample(self.unique_symbols, unique_num)
             characters += temp
 
@@ -135,8 +149,14 @@ class RegexGenerator:
 
         phrase_raw = self.sort(phrase_raw)
         phrase = RegexGenerator.list_to_string(phrase_raw)
+        phrase = RegexGenerator.repair(phrase)
+        if '}{' in phrase or '^{' in phrase:
+            return False
+        if phrase[0] == '+' or phrase[0] == '*' or phrase[0] == '{':
+            return False
 
-        index = random.randint(1, self.max_pos - regex_len)
+        index = random.randint(1, self.max_pos - (regex_len-1))
+
         print((index, phrase))
         return index, phrase
 

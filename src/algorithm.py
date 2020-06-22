@@ -1,3 +1,5 @@
+import copy
+
 import pandas as pd
 import numpy as np
 import re
@@ -10,6 +12,7 @@ class Util:
     def check_rule(record, rule):
         index, regex = rule
         record = record[index:]
+
         match = re.search(pattern=regex, string=record)
         return match
 
@@ -17,9 +20,10 @@ class Util:
 
 class Node:
 
-    def __init__(self, parent, rule, leaf=False, label=None):
+    def __init__(self, parent, rule=None, leaf=False, label=None):
         self.parent = parent  # node
-        self.children = []  # array of nodes
+        self.positive_child = []
+        self.negative_child = []
         self.rule = rule  # tuple
         self.leaf = leaf
         self.label = label
@@ -27,24 +31,20 @@ class Node:
 
 class DecisionTree:
 
+    i = 0
     def __init__(self, R, dataframe):
         self.R = R  # array of tuples
-        self.nodes = np.array([Node(parent=None, children=None, rule=None)])
-        self.S = dataframe.T.to_dict().values()  # list array of dicts
+        self.root = Node(parent=None, rule=None)
+        self.S = dataframe.to_dict('records')  # list array of dicts
+        self.setup()
 
     @staticmethod
-    def divide_set(data, node=None, rule=None):
-        assert node is not None or rule is not None
+    def divide_set(data, rule):
         positive_set = []
         negative_set = []
 
-        if node:
-            r = node.rule
-        if rule:
-            r = rule
-
         for d in data:
-            if Util.check_rule(d['Sequence'], r):
+            if Util.check_rule(d['Sequence'], rule):
                 positive_set.append(d)
             else:
                 negative_set.append(d)
@@ -52,12 +52,16 @@ class DecisionTree:
 
     @staticmethod
     def entrophy(data):
+        if not data:
+            return 0
         counter = 0
         for d in data:
             if d['Cut'] == 1:
                 counter += 1
         f_1 = counter / len(data)
         f_0 = 1 - f_1
+        if f_0 == 0 or f_1 == 0:
+            return 0
 
         entrophy = -1 * (f_1 * math.log(f_1) + f_0 * math.log(f_0))
         return entrophy
@@ -75,40 +79,74 @@ class DecisionTree:
         return infgain
 
     @staticmethod
-    def id3(root, rules, data):
-        assert data is not None
-
-        if DecisionTree.entrophy(data) == 0:
-            root.children.append(Node(parent=root, rule=None, leaf=True, label=data[0]['Cut']))
-            return
-
-        if len(rules) == 0:
-            counter = 0
-            for d in data:
-                if d['Cut'] == 1:
-                    counter += 1
-            f_1 = counter / len(data)
-            f_0 = 1 - f_1
-            label = f_1 if f_1 > f_0 else f_0
-            root.children.append(Node(parent=root, rule=None, leaf=True, label=label))
-            return
-
+    def best_rule(rules, data):
         best_infgain = -math.inf
         best_rule = []
         for r in rules:
             ig = DecisionTree.inf_gain(data, r)
+            if ig == 0:
+                rules.remove(r)
+
             if ig > best_infgain:
                 best_infgain = ig
                 best_rule = r
+        if best_infgain == 0:
+            return False
         rules.remove(best_rule)
+        return best_rule
 
-        n = Node(parent=root, rule=best_rule)
-        root.children.append(n)
+    @staticmethod
+    def set_to_label(data):
+        counter = 0
+        for d in data:
+            if d['Cut'] == 1:
+                counter += 1
+        f_1 = counter / len(data)
+        f_0 = 1 - f_1
+        label = f_1 if f_1 > f_0 else f_0
 
-        sets = DecisionTree.divide_set(data, node=n)
+        return label
 
-        for s in sets:
-            DecisionTree.id3(root=n, rules=rules, data=s)
+    @staticmethod
+    def id3(node, rules, data):
+        assert data
+
+        DecisionTree.i += 1
+        print(DecisionTree.i)
+
+        if DecisionTree.entrophy(data) == 0:
+            node.leaf = True
+            node.label = data[0]['Cut']
+            return
+
+        if len(rules) == 0:
+            label = DecisionTree.set_to_label(data)
+            node.leaf = True
+            node.label = label
+            return
+
+        best_rule = DecisionTree.best_rule(rules, data)
+        if not best_rule:
+            label = DecisionTree.set_to_label(data)
+            node.leaf = True
+            node.label = label
+            return
+
+        node.rule = best_rule
+
+        positive_child, negative_child = Node(parent=node), Node(parent=node)
+        node.positive_child = positive_child
+        node.negative_child = negative_child
+
+        positive_set, negative_set = DecisionTree.divide_set(data, rule=node.rule)
+
+        DecisionTree.id3(node=node.positive_child, rules=copy.deepcopy(rules), data=positive_set)
+        DecisionTree.id3(node=node.negative_child, rules=copy.deepcopy(rules), data=negative_set)
+
+    def setup(self):
+        DecisionTree.id3(node=self.root, rules=self.R, data=self.S)
+
+
 
 
 
