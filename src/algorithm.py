@@ -32,11 +32,17 @@ class DecisionTree:
 
     i = 0
 
-    def __init__(self, R, dataframe):
-        self.R = R  # array of tuples
+    def __init__(self, R, dataframe, omega):
         self.root = Node(parent=None, rule=None)
         self.nodes = [self.root]
+        self.leaves = []
+
         self.S = dataframe.to_dict('records')  # list array of dicts
+        self.R = R  # array of tuples
+        self.train_accuracy = None
+
+        self.omega = omega
+
         self.setup()
 
     @staticmethod
@@ -117,12 +123,14 @@ class DecisionTree:
         if DecisionTree.entrophy(data) == 0:
             node.leaf = True
             node.label = data[0]['Cut']
+            self.leaves.append(node)
             return
 
         if len(rules) == 0:
             label = DecisionTree.set_to_label(data)
             node.leaf = True
             node.label = label
+            self.leaves.append(node)
             return
 
         best_rule = DecisionTree.best_rule(rules, data)
@@ -130,6 +138,7 @@ class DecisionTree:
             label = DecisionTree.set_to_label(data)
             node.leaf = True
             node.label = label
+            self.leaves.append(node)
             return
 
         node.rule = best_rule
@@ -146,10 +155,13 @@ class DecisionTree:
         self.id3(node=node.positive_child, rules=copy.deepcopy(rules), data=positive_set)
         self.id3(node=node.negative_child, rules=copy.deepcopy(rules), data=negative_set)
 
+
     def setup(self):
         self.id3(node=self.root, rules=self.R, data=self.S)
-        print(self.S[0])
-        print(self.get_prediction(self.S[0]))
+        self.train_accuracy = self.evaluate_accuracy(self.S)
+
+
+    ### STUFF AFTER SETUP ###
 
     @staticmethod
     def feed_forward(record, node):
@@ -164,6 +176,36 @@ class DecisionTree:
 
     def get_prediction(self, record):
         return DecisionTree.feed_forward(record, self.root)
+
+    def evaluate_accuracy(self, t_set):
+        score = 0
+        for t in t_set:
+            pred = self.get_prediction(t)
+            if pred == t['Cut']:
+                score += 1
+        return score/len(t_set)
+
+    def evaluate_label_accuracy(self, t_set, label):
+        num_of_examples = 0
+        score = 0
+        for t in t_set:
+            if t['Cut'] == label:
+                num_of_examples += 1
+                pred = self.get_prediction(t)
+                if pred == t['Cut']:
+                    score += 1
+        return score / num_of_examples
+
+    def test_error_estimate(self):
+        e = 0
+        e = (1-self.train_accuracy) * len(self.S)
+        omg = self.omega * len(self.leaves)
+        nt = len(self.S)
+        return (e + omg) / nt
+
+
+
+
 
 
 
