@@ -17,7 +17,6 @@ class Util:
         return match
 
 
-
 class Node:
 
     def __init__(self, parent, rule=None, leaf=False, label=None):
@@ -32,9 +31,11 @@ class Node:
 class DecisionTree:
 
     i = 0
+
     def __init__(self, R, dataframe):
         self.R = R  # array of tuples
         self.root = Node(parent=None, rule=None)
+        self.nodes = [self.root]
         self.S = dataframe.to_dict('records')  # list array of dicts
         self.setup()
 
@@ -103,12 +104,11 @@ class DecisionTree:
                 counter += 1
         f_1 = counter / len(data)
         f_0 = 1 - f_1
-        label = f_1 if f_1 > f_0 else f_0
+        label = 1 if f_1 > f_0 else 0
 
         return label
 
-    @staticmethod
-    def id3(node, rules, data):
+    def id3(self, node, rules, data):
         assert data
 
         DecisionTree.i += 1
@@ -138,13 +138,32 @@ class DecisionTree:
         node.positive_child = positive_child
         node.negative_child = negative_child
 
+        self.nodes.append(node.positive_child)
+        self.nodes.append(node.negative_child)
+
         positive_set, negative_set = DecisionTree.divide_set(data, rule=node.rule)
 
-        DecisionTree.id3(node=node.positive_child, rules=copy.deepcopy(rules), data=positive_set)
-        DecisionTree.id3(node=node.negative_child, rules=copy.deepcopy(rules), data=negative_set)
+        self.id3(node=node.positive_child, rules=copy.deepcopy(rules), data=positive_set)
+        self.id3(node=node.negative_child, rules=copy.deepcopy(rules), data=negative_set)
 
     def setup(self):
-        DecisionTree.id3(node=self.root, rules=self.R, data=self.S)
+        self.id3(node=self.root, rules=self.R, data=self.S)
+        print(self.S[0])
+        print(self.get_prediction(self.S[0]))
+
+    @staticmethod
+    def feed_forward(record, node):
+        if node.leaf:
+            return node.label
+
+        seq = record['Sequence']
+        if Util.check_rule(seq, node.rule):
+            return DecisionTree.feed_forward(record, node.positive_child)
+        else:
+            return DecisionTree.feed_forward(record, node.negative_child)
+
+    def get_prediction(self, record):
+        return DecisionTree.feed_forward(record, self.root)
 
 
 

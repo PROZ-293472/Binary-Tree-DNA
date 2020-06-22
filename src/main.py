@@ -6,7 +6,7 @@ df = pd.read_csv('C:\\Users\\Lenovo\\Desktop\\Studia\\UM\\PROJEKT\\DecisionTreeD
 strlen = len(df.loc[0, 'Sequence'])
 rg = RegexGenerator(max_pos=strlen, curly_bracket_restrictions=4, max_bracket_num=3)
 R = []
-for i in range(60):
+for i in range(200):
     regex = rg.gen_regex()
     while not regex:
         regex = rg.gen_regex()
@@ -14,6 +14,16 @@ for i in range(60):
 
 model = DecisionTree(R=R, dataframe=df)
 
+leaf_counter = 0
+one_counter = 0
+for n in model.nodes:
+    if n.leaf:
+        leaf_counter += 1
+        if n.label == 1:
+            one_counter += 1
+zero_counter = leaf_counter - one_counter
+print(f'ZEROS: {zero_counter}')
+print(f'ONES: {one_counter}')
 
 
 
