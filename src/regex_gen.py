@@ -7,7 +7,10 @@ class RegexGenerator:
     _letters = ['A', 'C', 'G', 'T']
     _forbidden = [('++', '+'), ('**', '*'), ('+*', '+'), ('*+', '*'),
                   ('*{', '{'), ('}*', '}'), ('+{', '{'), ('}+', '}'),
-                  ('^*', '^'), ('^+', '^')]
+                  ('^*', '^'), ('^+', '^'), ('??', '?'), ('?+', '+?'),
+                  ('?*', '*?'), ('}?+', '}?'), ('}?*', '}?'), ('?{', '{'),
+                  ('+?+', '+?'), ('*?*', '*?'), ('*?+', '*?'), ('+?*', '+?'),
+                  ('?+?', '+?'), ('?*?', '*?')]
 
     # Here are defined some rules, that will assure correct sytnax
     # ^ - at the begining
@@ -43,7 +46,7 @@ class RegexGenerator:
 
         f_list = RegexGenerator.gen_dict_list(symbols=['^'], position='f', presort_pos=0)
         l_list = RegexGenerator.gen_dict_list(symbols=['$'], position='l', presort_pos=0)
-        nf_list = RegexGenerator.gen_dict_list(symbols=['+', '*'], position='nf', presort_pos=0)
+        nf_list = RegexGenerator.gen_dict_list(symbols=['+', '*', '?'], position='nf', presort_pos=0)
         # nfnl_list = RegexGenerator.gen_dict_list(symbols=['|'], position='nfnl', presort_pos=1)
         w_list = RegexGenerator.gen_dict_list(symbols=RegexGenerator._letters + ['.'], position='w', presort_pos=0)
 
@@ -150,14 +153,13 @@ class RegexGenerator:
         phrase_raw = self.sort(phrase_raw)
         phrase = RegexGenerator.list_to_string(phrase_raw)
         phrase = RegexGenerator.repair(phrase)
-        if '}{' in phrase or '^{' in phrase:
+        if '}{' in phrase or '^{' in phrase or '^?' in phrase:
             return False
-        if phrase[0] == '+' or phrase[0] == '*' or phrase[0] == '{':
+        if phrase[0] == '+' or phrase[0] == '*' or phrase[0] == '{' or phrase[0] == '?':
             return False
 
         index = random.randint(1, self.max_pos - (regex_len-1))
 
-        print((index, phrase))
         return index, phrase
 
 

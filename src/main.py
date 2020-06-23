@@ -11,7 +11,7 @@ for i in range(400):
     while not regex:
         regex = rg.gen_regex()
     R.append(regex)
-
+print(R)
 model = DecisionTree(R=R, dataframe=df, omega=0.5)
 
 
