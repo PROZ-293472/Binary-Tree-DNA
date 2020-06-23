@@ -69,7 +69,11 @@ class Util:
     def best_rule(rules, data):
         best_infgain = -math.inf
         best_rule = []
+        i = 0
+        print('Searching for best rule...')
         for r in rules:
+            print(f'Rule {i} of {len(rules)}')
+            i += 1
             ig = Util.inf_gain(data, r)
             if ig == 0:
                 rules.remove(r)

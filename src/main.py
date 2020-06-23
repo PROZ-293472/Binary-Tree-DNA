@@ -2,37 +2,44 @@ from src.c4_5_tree import C45DecisionTree
 from src.regex_gen import RegexGenerator
 from src.id3_tree import Id3DecisionTree
 import pandas as pd
+import numpy as np
 
-df = pd.read_csv('C:\\Users\\Lenovo\\Desktop\\Studia\\UM\\PROJEKT\\DecisionTreeDNA\\data\\spliceATrainKIS.csv')
+df = pd.read_csv('C:\\Users\\Lenovo\\Desktop\\Studia\\UM\\PROJEKT\\DecisionTreeDNA\\data\\spliceDTrainKIS.csv')
+
+# GENERATING A SET OF RULES
+rule_num = 300
 strlen = len(df.loc[0, 'Sequence'])
 rg = RegexGenerator(max_pos=strlen, curly_bracket_restrictions=4, max_bracket_num=3)
 R = []
-for i in range(50):
-    regex = rg.gen_regex()
-    while not regex:
-        regex = rg.gen_regex()
-    R.append(regex)
+for i in range(rule_num):
+    rule = rg.gen_regex()
+    while not rule:
+        rule = rg.gen_regex()
+    R.append(rule)
 print(R)
-model = C45DecisionTree(R=R, dataframe=df, omega=0.001)
-model.show_accuracies()
-'''
-model = Id3DecisionTree(R=R, dataframe=df, omega=0.5)
+
+# SPLITTING DATASET INTO K SETS
+k = 10
+df = df.sample(frac=1)
+df_array = np.array_split(df, k)
+
+models = []
+for d in df_array:
+    diff_df = pd.merge(df, d, how='outer', indicator='Exist')
+    diff_df = diff_df.loc[diff_df['Exist'] != 'both']
+
+    model = C45DecisionTree(R=R, dataframe=diff_df, omega=0.001)
+    model.evaluate_accuracies(test_data=d)
+
+    model.show_leaves_num()
+    model.show_train_accuracies()
+    model.show_test_accuracies()
+
+    models.append(model)
 
 
-one_counter = 0
-for n in model.leaves:
-    if n.label == 1:
-        one_counter += 1
-zero_counter = len(model.leaves) - one_counter
-print(f'NUM OF "0" LEAVES: {zero_counter}')
-print(f'NUM OF "1" LEAVES: {one_counter}')
 
-acc = model.id3_train_accuracy
-print(f'TOTAL ACCURACY: {acc}')
-acc1 = Id3DecisionTree.evaluate_label_accuracy(model, model.S, label=1)
-print(f'ACCURACY OF ONES: {acc1}')
-acc0 = Id3DecisionTree.evaluate_label_accuracy(model, model.S, label=0)
-print(f'ACCURACY OF ZEROS: {acc0}')
-'''
+
+
 
 

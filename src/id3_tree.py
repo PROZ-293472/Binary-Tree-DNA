@@ -23,7 +23,6 @@ class Node:
 
 
 class Id3DecisionTree:
-    i = 0
 
     def __init__(self, R, dataframe, omega):
         self.root = Node(parent=None, rule=None)
@@ -42,8 +41,7 @@ class Id3DecisionTree:
     def id3(self, node, rules, data):
         assert data
 
-        Id3DecisionTree.i += 1
-        print(Id3DecisionTree.i)
+        print(f'NODE: {node.debug_name}')
 
         if Util.entrophy(data) == 0:
             node.leaf = True
