@@ -5,16 +5,21 @@ from src.utils import Util
 
 class Node:
     debug_name = 0
-    def __init__(self, parent, rule=None, leaf=False, label=None):
+
+    def __init__(self, parent, rule=None, leaf=False, label=None, set=None):
         self.parent = parent  # node
         self.positive_child = []
         self.negative_child = []
         self.rule = rule  # tuple
         self.leaf = leaf
         self.label = label
-        self.set = []
+        self.set = set
         self.debug_name = Node.debug_name
         Node.debug_name += 1
+
+    def to_leaf(self):
+        label = Util.set_to_label(self.set)
+        return Node(parent=self.parent, leaf=True, label=label, set=self.set)
 
 
 class Id3DecisionTree:
@@ -27,7 +32,6 @@ class Id3DecisionTree:
 
         self.S = dataframe.to_dict('records')  # list array of dicts
         self.R = R  # array of tuples
-        self.train_accuracy = None
 
         self.omega = omega
 
@@ -78,9 +82,27 @@ class Id3DecisionTree:
 
     def setup(self):
         self.id3(node=self.root, rules=self.R, data=self.S)
-        self.train_accuracy = Id3DecisionTree.evaluate_accuracy(self, self.S)
+        print('='*10 + ' ID3 DONE ' + '='*10)
 
     ### STUFF AFTER SETUP ###
+    @staticmethod
+    def search_leaves(node, found_leaves):
+        if node.leaf:
+            found_leaves.append(node)
+            return
+
+        Id3DecisionTree.search_leaves(node.positive_child, found_leaves)
+        Id3DecisionTree.search_leaves(node.negative_child, found_leaves)
+
+    @staticmethod
+    def search_children(node, children):
+        if node.leaf:
+            return
+        children.append(node.positive_child)
+        children.append(node.negative_child)
+
+        Id3DecisionTree.search_children(node.positive_child, children)
+        Id3DecisionTree.search_children(node.negative_child, children)
 
     @staticmethod
     def feed_forward(record, node):
@@ -118,9 +140,23 @@ class Id3DecisionTree:
                     score += 1
         return score / num_of_examples
 
+
     @staticmethod
-    def test_error_estimate(decision_tree):
-        e = (1 - decision_tree.train_accuracy) * len(decision_tree.S)
-        omg = decision_tree.omega * len(decision_tree.leaves)
-        nt = len(decision_tree.S)
+    def evaluate_accuracy2(node):
+        score = 0
+        for t in node.set:
+            pred = Id3DecisionTree.get_prediction(node, t)
+            if pred == t['Cut']:
+                score += 1
+        return score / len(node.set)
+
+    def subtree_test_error_estimate(self, node):
+        e = (1 - Id3DecisionTree.evaluate_accuracy2(node)) * len(node.set)
+        leaves = []
+        Id3DecisionTree.search_leaves(node, leaves)
+        omg = self.omega * len(leaves)
+        nt = len(node.set)
         return (e + omg) / nt
+
+
+

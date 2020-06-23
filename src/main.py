@@ -7,13 +7,13 @@ df = pd.read_csv('C:\\Users\\Lenovo\\Desktop\\Studia\\UM\\PROJEKT\\DecisionTreeD
 strlen = len(df.loc[0, 'Sequence'])
 rg = RegexGenerator(max_pos=strlen, curly_bracket_restrictions=4, max_bracket_num=3)
 R = []
-for i in range(100):
+for i in range(50):
     regex = rg.gen_regex()
     while not regex:
         regex = rg.gen_regex()
     R.append(regex)
 print(R)
-model = C45DecisionTree(R=R, dataframe=df, omega=0.5)
+model = C45DecisionTree(R=R, dataframe=df, omega=0.001)
 model.show_accuracies()
 '''
 model = Id3DecisionTree(R=R, dataframe=df, omega=0.5)
