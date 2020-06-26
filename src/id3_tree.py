@@ -1,5 +1,7 @@
-import copy
+__author__ = "Michal Szpunar"
 
+
+import copy
 from src.utils import Util
 
 
@@ -41,7 +43,7 @@ class Id3DecisionTree:
     def id3(self, node, rules, data):
         assert data
 
-        print(f'NODE: {node.debug_name}')
+        #print(f'NODE: {node.debug_name}')
 
         if Util.entrophy(data) == 0:
             node.leaf = True
@@ -80,7 +82,7 @@ class Id3DecisionTree:
 
     def setup(self):
         self.id3(node=self.root, rules=self.R, data=self.S)
-        print('='*10 + ' ID3 DONE ' + '='*10)
+        #print('='*10 + ' ID3 DONE ' + '='*10)
 
     ### STUFF AFTER SETUP ###
     @staticmethod

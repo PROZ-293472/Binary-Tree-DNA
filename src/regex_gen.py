@@ -1,5 +1,9 @@
+__author__ = "Michal Szpunar"
+
+
 import copy
 import random
+import csv
 
 
 class RegexGenerator:
@@ -141,11 +145,11 @@ class RegexGenerator:
         # pick characters at random
         characters = random.choices(self.mult_symbols, k=(regex_len - b_len))
 
-        has_unique = bool(random.random() > 0.7)
-        if has_unique:
-            unique_num = 1
-            temp = random.sample(self.unique_symbols, unique_num)
-            characters += temp
+        # has_unique = bool(random.random() > 0.7)
+        # if has_unique:
+        #     unique_num = 1
+        #     temp = random.sample(self.unique_symbols, unique_num)
+        #     characters += temp
 
         phrase_raw = brackets + characters
         phrase_raw = [copy.deepcopy(i) for i in phrase_raw]
@@ -162,9 +166,19 @@ class RegexGenerator:
 
         return index, phrase
 
-
-
-
+    def gen_file(self, rule_num, file_name):
+        R = []
+        for i in range(rule_num):
+            rule = self.gen_regex()
+            while not rule:
+                rule = self.gen_regex()
+            R.append(rule)
+        with open(file_name, 'w') as out:
+            csv_out = csv.writer(out)
+            csv_out.writerow(['index', 'regex'])
+            for row in R:
+                if row:
+                    csv_out.writerow(row)
 
 
 
